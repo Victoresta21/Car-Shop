@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import ControllerGeneric, { ResponseError } from './genericController';
 import { IRequestWithBody } from './interfaceController';
 import CarService from '../services/carService';
@@ -21,12 +21,8 @@ class CarController extends ControllerGeneric<Car> {
     res: Response<Car | ResponseError>,
   ): Promise<typeof res> => {
     try {            
-      const { model, year, color, status, buyValue,
-        doorsQty,
-        seatsQty } = req.body;
-      const car = await this.service.create(
-        { model, year, color, status, buyValue, doorsQty, seatsQty },
-      );
+      const { body } = req;
+      const car = await this.service.create(body);
       if (!car) {
         return res.status(500).json({ error: this.errors.internal });
       }
@@ -36,24 +32,11 @@ class CarController extends ControllerGeneric<Car> {
     } catch (error) {
       return res.status(400).json({ error: this.errors.internal });
     }
-  };  
-
-  read = async (
-    req: IRequestWithBody<Car>,
-    res: Response,
-  ): Promise<typeof res> => {
-    try {
-      const cars = await this.service.read();
-
-      return res.status(200).json(cars);
-    } catch (error: unknown) {
-      return res.status(500).json(error as undefined);
-    }
   };
 
   readOne = async (
-    req: IRequestWithBody<Car>,
-    res: Response<Car | ResponseError | null>,
+    req: Request<{ id: string }>,
+    res: Response<Car | ResponseError>,
   ): Promise<typeof res> => {
     const { id } = req.params;
     try {
@@ -65,26 +48,31 @@ class CarController extends ControllerGeneric<Car> {
     }
   };
 
-  async update(req: IRequestWithBody<Car>, res: Response): Promise<Response> {
+  update = async (
+    req: IRequestWithBody<Car>,
+    res: Response<Car | ResponseError | null>,
+  ): Promise<typeof res> => {
+    const { id } = req.params;
+    const { model, year, color, status, buyValue, doorsQty,
+      seatsQty } = req.body;
     try {
-      const { id } = req.params;
-      const { model, year,
-        color,
-        status,
-        buyValue,
-        doorsQty,
-        seatsQty } = req.body;
-      const car = await this.service.update(
-        id,
-        { model, year, color, status, buyValue, doorsQty, seatsQty },
-      );
+      const car = await this.service.update(id, {
+        model, year, color, status, buyValue, doorsQty, seatsQty });
+      if (!car) {
+        return res.status(400).json({ error: this.errors.isValidId });
+      }
+      if ('error' in car) return res.status(400).json(car);
+
       return res.status(200).json(car);
     } catch (error) {
-      return res.send(error);
+      return res.status(404).json({ error: this.errors.notFound });
     }
-  }
+  };
 
-  async delete(req: IRequestWithBody<Car>, res: Response): Promise<Response> {
+  delete = async (
+    req: IRequestWithBody<Car>,
+    res: Response,
+  ): Promise<Response> => {
     try {
       const { id } = req.params;
       const car = await this.service.delete(id);
@@ -92,7 +80,7 @@ class CarController extends ControllerGeneric<Car> {
     } catch (error) {
       return res.send(error);
     }
-  }
+  };
 }
 
 export default CarController;

@@ -15,19 +15,21 @@ abstract class ModelGeneric<T> implements Model<T> {
   }
 
   async readOne(id: string): Promise<T | null> {
-    if (!isValidObjectId) return null;
+    if (!isValidObjectId(id)) return null;
     return this.modelMongoose.findOne({ _id: id });
   }
 
   async update(id: string, entity: T): Promise<T | null> {
-    return this.modelMongoose.findOneAndUpdate(
-      { _id: id }, 
+    if (!isValidObjectId(id)) return null;
+    return this.modelMongoose.findByIdAndUpdate(
+      id,
       entity,
       { returnOriginal: false },
     );
   }
 
   async delete(id: string): Promise<T | null> {
+    if (!isValidObjectId(id)) return null;
     return this.modelMongoose.findOneAndDelete({ _id: id });
   }
 }
